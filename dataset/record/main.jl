@@ -15,3 +15,13 @@ dy = diff(y)
 strokes = Stroke(dx, dy, penStates[2:end], timestamps[2:end])
 
 ValidateStroke(strokes)
+
+xMean = mean(strokes.dx)
+yMean = mean(strokes.dy)
+
+θ = atan.(strokes.dy,strokes.dx)
+display(θ)
+
+speed = sqrt.(strokes.dx.^2 + strokes.dy.^2)
+
+plot(diff(θ))
