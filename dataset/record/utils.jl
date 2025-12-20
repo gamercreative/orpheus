@@ -1,0 +1,3 @@
+struct Stroke 
+
+end
