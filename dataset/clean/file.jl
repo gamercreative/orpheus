@@ -7,6 +7,4 @@ end
 function GetJsonFileContent(path::String)
     raw = GetFileContent(path)
     json = JSON.parse(raw)
-
-    return json
 end
