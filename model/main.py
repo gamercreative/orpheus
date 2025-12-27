@@ -2,20 +2,21 @@ import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pad_sequence
 import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
-
 import matplotlib.pyplot as plt
 import json
 
+# device agonostic code setu
 if torch.mps.is_available():
     device = "mps"
+elif torch.cuda.is_available():
+    device = "cuda"
 else:
     device = "cpu"
 
 #data
 with open("dataset/ready.json","r") as f:
     data = json.load(f)
-    
+
 sequences = []
 for stroke in data:
     seq = list(zip(stroke["dx"],stroke["dy"]))
@@ -28,19 +29,21 @@ for seq in sequences:
 
 motor_seq = pad_sequence(tensors, batch_first=True , padding_value=0.0)
 
-X = motor_seq[:,:-1,:]
-Y = motor_seq[:,1:,:]
+# X = motor_seq[:,:-1,:]
+Y = motor_seq
 
-letter_embed = torch.tensor([1.0,0.0], dtype=torch.float32)
-letter_embed = letter_embed.repeat(motor_seq.size(0),1,1)
+base_embed = torch.tensor([1.0, 0.0], dtype=torch.float32)
+letter_embed = base_embed.unsqueeze(0).unsqueeze(1).repeat(Y.size(0), Y.size(1), 1)
 
-X = torch.cat([letter_embed,X],dim=1)
+# X = torch.cat([letter_embed,X],dim=1)
+
+X = letter_embed
 
 print(X.shape)
 print(Y.shape)
 
 # model
-class DrawerRNN(nn.Module):
+class DrawerLSTM(nn.Module):
     def __init__(self) -> None:
         super().__init__()
         self.input_size = 2
@@ -48,39 +51,39 @@ class DrawerRNN(nn.Module):
         self.num_layers = 3
         self.output_size = 2
         
-        self.rnn = nn.RNN(input_size=self.input_size, hidden_size=self.hidden_size, num_layers=self.num_layers, batch_first=True)
+        self.lstm = nn.LSTM(input_size=self.input_size, hidden_size=self.hidden_size, num_layers=self.num_layers, batch_first=True)
         self.norm = nn.LayerNorm(self.hidden_size)
         self.output_layer = nn.Linear(self.hidden_size,self.output_size)
         
         
     def forward(self,x):
         batch_size = x.size(0)
-        h0 = torch.zeros(self.num_layers,batch_size, self.hidden_size, device=x.device)
-        
-        out,hn = self.rnn(x,h0)
+        h0 = torch.zeros(self.num_layers,batch_size,self.hidden_size, device=x.device)
+        c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size, device=x.device)
+        out,(hn,cn) = self.lstm(x,(h0,c0))
         
         out = self.norm(out)
         
         return self.output_layer(out)
-    
-model = DrawerRNN()
+
+model = DrawerLSTM()
 
 # train
 criterian = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-for epoch in range(20):
+for epoch in range(1000):
     optimizer.zero_grad()
     out = model(X)
-    loss = criterian(out[:,:-1,:],Y)
+    loss = criterian(out,Y)
     loss.backward()
     optimizer.step()
     
     if epoch % 20 == 0:
         print(f"Epoch {epoch} - Loss: {loss.item()}")
 
-def DrawOut(model):
-    out = model(X).detach().cpu()
+def DrawOut(model,inp):
+    out = model(inp).detach().cpu()
     motor_seq = out[0]  # take first sequence in batch
 
     # convert deltas to absolute coordinates
@@ -91,6 +94,4 @@ def DrawOut(model):
     plt.axis('equal')
     plt.show()
 
-DrawOut(model)
-DrawOut(model)
-DrawOut(model)
+DrawOut(model,X)
