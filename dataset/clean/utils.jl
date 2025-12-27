@@ -49,6 +49,10 @@ function ExtractStrokeSequence(jsonContent)
     penStates = Int8.([stroke[3] for stroke in jsonContent])
     timestamps = Float64.([stroke[4] for stroke in jsonContent])
 
+    p = Plots.plot(x,y)
+    title!(p,"space stroke")
+    display(p)
+
     spaceStrokes = SpaceStroke(x, y, penStates, timestamps)
 
     dx = diff(x)
