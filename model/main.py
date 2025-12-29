@@ -46,7 +46,7 @@ model = draw_model.DrawerLSTM(device).to(device)
 criterian = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.009)
 
-for epoch in range(200):
+for epoch in range(120):
     for X_batch, Y_batch in [(X1, Y1), (X2, Y2)]:
         optimizer.zero_grad()
         out = model(X_batch)
