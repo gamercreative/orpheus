@@ -5,7 +5,7 @@ import json
 
 # ---------------- CONFIG ----------------
 SCREEN_SIZE = (800, 600)
-OUTPUT_FILE = "dataset/strokes.json"
+OUTPUT_FILE = "dataset/strokes2.json"
 FPS = 120  # capture rate
 # ----------------------------------------
 
