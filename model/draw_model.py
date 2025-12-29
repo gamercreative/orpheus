@@ -42,8 +42,8 @@ def DrawOut(model,embed,steps):
         out = model.norm(out)
         out = model.output_layer(out)
         
-        # delta = out[:,-1:,:] + torch.rand_like(out[:,-1,:]) * 0.05
-        delta = out[:,-1:,:]
+        delta = out[:,-1:,:] + torch.rand_like(out[:,-1,:]) * 0.2
+        # delta = out[:,-1:,:]
         motor_seq.append(delta.squeeze(0))
         inp = delta
         if delta[0,0,2] < 0.3:
