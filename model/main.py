@@ -69,30 +69,19 @@ while True:
     print(torch.min(p1))
     
     plt.plot(x1,y1)
-    plt.title("C")
-    plt.axis('equal')
-    plt.show()
-    
-    plt.plot(time_axis,p1)
-    plt.title("C pen_state")
-    plt.axis('equal')
-    plt.show()
-    
+
     letter_embed = [1.0, 0.0, 1.0, 0.0]
-    x1,y1,p1,t1 = draw_model.DrawOut(model,letter_embed,100)
-    time_axis = torch.tensor(range(0,p1.size(0))).unsqueeze(1)
+    x2,y2,p2,t2 = draw_model.DrawOut(model,letter_embed,100)
+    time_axis = torch.tensor(range(0,p2.size(0))).unsqueeze(1)
     
     print("s")
-    print(x1.size(0))
-    print(torch.max(p1))
-    print(torch.min(p1))
+    print(x2.size(0))
+    print(torch.max(p2))
+    print(torch.min(p2))
     
-    plt.plot(x1,y1)
-    plt.title("S")
-    plt.axis('equal')
-    plt.show()
+    x2 += 200
     
-    plt.plot(time_axis,p1)
-    plt.title("S pen_state")
+    plt.plot(x2,y2)
+    plt.title("S and B")
     plt.axis('equal')
     plt.show()
