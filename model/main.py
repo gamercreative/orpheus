@@ -21,33 +21,41 @@ else:
 # load data
 X1,Y1 = data.LoadData("dataset/s.json")
 X2,Y2 = data.LoadData("dataset/b.json")
+X3,Y3 = data.LoadData("dataset/c.json")
 
 X1 = data.AssignStartToken(X1)
 X2 = data.AssignStartToken(X2)
+X3 = data.AssignStartToken(X3)
 
 X1 = data.AssignStrokeToLetter(X1,[1.0, 0.0, 1.0, 0.0]) # S
 X2 = data.AssignStrokeToLetter(X2,[1.0, 0.0, 0.0, 0.0]) # C
+X3 = data.AssignStrokeToLetter(X3,[1.0, 1.0, 0.0, 0.0]) # C
 
 Y1 = data.AssignEndToken(Y1)
 Y2 = data.AssignEndToken(Y2)
+Y3 = data.AssignEndToken(Y3)
 
 print(Y1.shape)
 print(Y2.shape)
+print(Y3.shape)
 
 X1 = X1.to(device)
 X2 = X2.to(device)
+X3 = X3.to(device)
+
 Y1 = Y1.to(device)
 Y2 = Y2.to(device)
+Y3 = Y3.to(device)
 
 # init
 model = draw_model.DrawerLSTM(device).to(device)
 
 # train
 criterian = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=0.009)
+optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-for epoch in range(120):
-    for X_batch, Y_batch in [(X1, Y1), (X2, Y2)]:
+for epoch in range(300):
+    for X_batch, Y_batch in [(X1, Y1), (X2, Y2), (X3, Y3)]:
         optimizer.zero_grad()
         out = model(X_batch)
         loss = criterian(out, Y_batch)
@@ -56,6 +64,10 @@ for epoch in range(120):
 
         if epoch % 19 == 0:
             print(f"Epoch {epoch} - Loss: {loss.item()}")
+            
+            for p in model.parameters():
+                if p.grad is not None:
+                    print("grad min/max ",p.grad.min().item(),p.grad.max().item())
 
 # inference
 while True:
@@ -82,6 +94,19 @@ while True:
     x2 += 200
     
     plt.plot(x2,y2)
-    plt.title("S and B")
+    
+    letter_embed = [1.0, 1.0, 0.0, 0.0]
+    x3,y3,p3,t3 = draw_model.DrawOut(model,letter_embed,100)
+    time_axis = torch.tensor(range(0,p3.size(0))).unsqueeze(1)
+    
+    print("b")
+    print(x3.size(0))
+    print(torch.max(p3))
+    print(torch.min(p3))
+    
+    x3 += 400
+    
+    plt.plot(x3,y3)
+    plt.title("B,S,C")
     plt.axis('equal')
     plt.show()
