@@ -29,15 +29,15 @@ for seq in sequences:
 
 motor_seq = pad_sequence(tensors, batch_first=True , padding_value=0.0)
 
-# X = motor_seq[:,:-1,:]
-Y = motor_seq
+X = motor_seq[:,:-1,:]
+Y = motor_seq[:,1:,:]
 
-base_embed = torch.tensor([1.0, 0.0], dtype=torch.float32)
-letter_embed = base_embed.unsqueeze(0).unsqueeze(1).repeat(Y.size(0), Y.size(1), 1)
+base_embed = torch.tensor([1.0, 0.0], dtype=torch.float32).unsqueeze(1).unsqueeze(2).repeat(1,1,2)
+print(base_embed.shape)
 
-# X = torch.cat([letter_embed,X],dim=1)
+X = torch.cat([base_embed,X],dim=1)
 
-X = letter_embed
+# X = letter_embed
 
 print(X.shape)
 print(Y.shape)
@@ -55,11 +55,11 @@ class DrawerLSTM(nn.Module):
         self.norm = nn.LayerNorm(self.hidden_size)
         self.output_layer = nn.Linear(self.hidden_size,self.output_size)
         
-        
     def forward(self,x):
         batch_size = x.size(0)
-        h0 = torch.zeros(self.num_layers,batch_size,self.hidden_size, device=x.device)
-        c0 = torch.zeros(self.num_layers, batch_size, self.hidden_size, device=x.device)
+        h0 = torch.randn(model.num_layers, X.size(0), model.hidden_size)
+        c0 = torch.randn(model.num_layers, X.size(0), model.hidden_size)
+
         out,(hn,cn) = self.lstm(x,(h0,c0))
         
         out = self.norm(out)
@@ -72,10 +72,10 @@ model = DrawerLSTM()
 criterian = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-for epoch in range(1000):
+for epoch in range(2):
     optimizer.zero_grad()
     out = model(X)
-    loss = criterian(out,Y)
+    loss = criterian(out[:,:-1,:],Y)
     loss.backward()
     optimizer.step()
     
@@ -94,4 +94,5 @@ def DrawOut(model,inp):
     plt.axis('equal')
     plt.show()
 
+DrawOut(model,X)
 DrawOut(model,X)
