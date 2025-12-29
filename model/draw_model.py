@@ -12,7 +12,7 @@ class DrawerLSTM(nn.Module):
         self.embedding_size = 4
         self.input_size = 4 + self.embedding_size
         self.hidden_size = 128
-        self.num_layers = 5
+        self.num_layers = 2
         self.output_size = 4
         
         self.lstm = nn.LSTM(input_size=self.input_size, hidden_size=self.hidden_size, num_layers=self.num_layers, batch_first=True)
