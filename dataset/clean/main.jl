@@ -1,6 +1,6 @@
 include("./includes.jl")
 
-jsonContent = GetJsonFileContent("dataset/strokes.json")
+jsonContent = GetJsonFileContent("dataset/strokes2.json")
 
 strokeSequences::Vector{Stroke} = Stroke[]
 
@@ -10,4 +10,4 @@ for strokeSequence in jsonContent
     push!(strokeSequences, stroke)
 end
 
-SaveStrokes("dataset/ready.json",strokeSequences)
+SaveStrokes("dataset/ready2.json",strokeSequences)
