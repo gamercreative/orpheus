@@ -43,63 +43,91 @@ function SaveStrokes(path::T1, strokes::T2) where {T1<:String , T2<:Vector{Strok
     end
 end
 
+function CleanStrokeSequence(x_temp, y_temp, penStates_temp, timestamps_temp)
+    x = []
+    y = []
+    p = []
+    t = []
+    start = false
+    x_buffer = []
+    y_buffer = []
+    p_buffer = []
+    t_buffer = []
+
+    for i in eachindex(penStates_temp)
+        if penStates_temp[i] == 0
+            if !start
+                continue
+            end
+            # store in buffer to remove noise
+            push!(x_buffer,x_temp[i])
+            push!(y_buffer,y_temp[i])
+            push!(p_buffer,penStates_temp[i])
+            push!(t_buffer,timestamps_temp[i])
+        end
+
+        if penStates_temp[i] == 1
+            if !start
+                start = true
+            end
+
+            if length(x_buffer) > 0 # no need to check the rest they are all modified together
+                # append buffer content
+                append!(x,x_buffer)
+                append!(y,y_buffer)
+                append!(p,p_buffer)
+                append!(t,t_buffer)
+
+                # delete buffer content
+                empty!(x_buffer)
+                empty!(y_buffer)
+                empty!(p_buffer)
+                empty!(t_buffer)
+            end
+
+            # append the current point
+            push!(x,x_temp[i])
+            push!(y,y_temp[i])
+            push!(p,penStates_temp[i])
+            push!(t,timestamps_temp[i])
+        end
+    end
+
+    return x,y,p,t
+end
+
 function ExtractStrokeSequence(jsonContent)
     x_temp = Int16.([stroke[1] for stroke in jsonContent])
     y_temp = Int16.([stroke[2] for stroke in jsonContent])
     penStates_temp = Int8.([stroke[3] for stroke in jsonContent])
     timestamps_temp = Float64.([stroke[4] for stroke in jsonContent])
 
-    x = []
-    y = []
-    penStates = []
-    timestamps = []
-
-    start = false
-    for i in eachindex(penStates_temp)
-        if penStates_temp[i] == 0
-            if !start
-                continue
-            end
-        end
-
-        if !start
-            start = true
-        end
-        append!(x,x_temp[i])
-        append!(y,y_temp[i])
-        append!(penStates,penStates_temp[i])
-        append!(timestamps,timestamps_temp[i])
-    end
+    x,y,p,t = CleanStrokeSequence(x_temp, y_temp, penStates_temp, timestamps_temp)
 
     disp_x = []
     disp_y = []
-    for i in eachindex(penStates)
-        if penStates[i] == 1
+    for i in eachindex(p)
+        if p[i] == 1
             append!(disp_x,x[i])
             append!(disp_y,y[i])
         end
     end
 
-    p = Plots.plot(disp_x,disp_y)
-    title!(p,"space stroke")
-    display(p)
+    plot = Plots.plot(disp_x,disp_y)
+    title!(plot,"space stroke")
+    display(plot)
 
-    spaceStrokes = SpaceStroke(x, y, penStates, timestamps)
+    spaceStrokes = SpaceStroke(x, y, p, t)
 
     dx = diff(x)
     dy = diff(y)
-    dt = diff(timestamps)
-    # for now include the end of letter entry
-    # push!(dx,0)
-    # push!(dx,0)
-    # push!(penStates,-1)
-    # push!(dt,0)
+    dt = diff(t)
 
-    strokes = Stroke(dx, dy, penStates[2:end], dt)
+    strokes = Stroke(dx, dy, p[2:end], dt)
 
     println("x size $(length(x))")
     println("y size $(length(y))")
-    println("t size $(length(timestamps))")
+    println("t size $(length(t))")
 
     println("dx size $(length(dx))")
     println("dy size $(length(dy))")
