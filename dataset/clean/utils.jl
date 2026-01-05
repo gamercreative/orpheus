@@ -44,12 +44,43 @@ function SaveStrokes(path::T1, strokes::T2) where {T1<:String , T2<:Vector{Strok
 end
 
 function ExtractStrokeSequence(jsonContent)
-    x = Int16.([stroke[1] for stroke in jsonContent])
-    y = Int16.([stroke[2] for stroke in jsonContent])
-    penStates = Int8.([stroke[3] for stroke in jsonContent])
-    timestamps = Float64.([stroke[4] for stroke in jsonContent])
+    x_temp = Int16.([stroke[1] for stroke in jsonContent])
+    y_temp = Int16.([stroke[2] for stroke in jsonContent])
+    penStates_temp = Int8.([stroke[3] for stroke in jsonContent])
+    timestamps_temp = Float64.([stroke[4] for stroke in jsonContent])
 
-    p = Plots.plot(x,y)
+    x = []
+    y = []
+    penStates = []
+    timestamps = []
+
+    start = false
+    for i in eachindex(penStates_temp)
+        if penStates_temp[i] == 0
+            if !start
+                continue
+            end
+        end
+
+        if !start
+            start = true
+        end
+        append!(x,x_temp[i])
+        append!(y,y_temp[i])
+        append!(penStates,penStates_temp[i])
+        append!(timestamps,timestamps_temp[i])
+    end
+
+    disp_x = []
+    disp_y = []
+    for i in eachindex(penStates)
+        if penStates[i] == 1
+            append!(disp_x,x[i])
+            append!(disp_y,y[i])
+        end
+    end
+
+    p = Plots.plot(disp_x,disp_y)
     title!(p,"space stroke")
     display(p)
 
