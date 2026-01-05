@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import data
+import utils
 
 # model
 class DrawerLSTM(nn.Module):
@@ -9,12 +10,14 @@ class DrawerLSTM(nn.Module):
 
         self.device = device
     
-        self.embedding_size = 4
-        self.input_size = 4 + self.embedding_size
+        self.embedding_size = 5 # 3 letters and 2 tokens
+        self.embedding_dim = 64
+        self.input_size = 4 + self.embedding_dim
         self.hidden_size = 128
         self.num_layers = 3
         self.output_size = 4
 
+        self.embed = nn.Embedding(self.embedding_size,self.embedding_dim)
         self.lstm = nn.LSTM(input_size=self.input_size, hidden_size=self.hidden_size, num_layers=self.num_layers, batch_first=True)
         self.norm = nn.LayerNorm(self.hidden_size)
         self.output_layer = nn.Linear(self.hidden_size,self.output_size)
@@ -29,15 +32,16 @@ class DrawerLSTM(nn.Module):
         
         return self.output_layer(out)
 
-def DrawOut(model,embed,steps):
+def DrawOut(model,lett_id,steps):
     model.eval()
+    lett_embed = model.embed(lett_id)
     h0 = torch.zeros(model.num_layers,1,model.hidden_size, device=model.device)
     c0 = torch.zeros(model.num_layers,1,model.hidden_size, device=model.device)
-    inp = data.AssignStartToken(None)
+    inp = data.AssignStartToken(None,model.embed(utils.START_TOKEN_ID))
 
     motor_seq = []
     for _ in range(steps):
-        inp = data.AssignStrokeToLetter(inp,embed)
+        inp = data.AssignStrokeToLetter(inp,lett_embed)
         out,(h0,c0) = model.lstm(inp,(h0,c0))
         out = model.norm(out)
         out = model.output_layer(out)
