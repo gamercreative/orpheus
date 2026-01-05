@@ -44,7 +44,7 @@ def AssignStrokeToLetter(X, embed):
     return X
 
 def AssignEndToken(Y):
-    end_tok = [-0.1, -0.1, -1.0, -0.1]
+    end_tok = [0.1, 0.1, 2.0, 0.1]
     if Y == None:
         end_token = torch.tensor(end_tok,device=device).unsqueeze(0).unsqueeze(0)
         return end_token
