@@ -21,7 +21,7 @@ def CharToId(letter):
     # end_token_ID = 27
     letter_to_id = {chr(i): i for i in range(97,123)}
 
-    return torch.tensor(letter_to_id[letter]).to(device)
+    return torch.tensor(letter_to_id[letter] - 97).to(device)
 
 def GetDevice():
     if torch.mps.is_available():
