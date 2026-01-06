@@ -1,4 +1,5 @@
 import os
+import json
 import torch
 
 def GetFiles(dir):
@@ -37,3 +38,4 @@ device = GetDevice()
 
 START_TOKEN_ID = torch.tensor([26]).squeeze(0).to(device)
 END_TOKEN_ID = torch.tensor([27]).squeeze(0).to(device)
+PAD_VALUE = -1.0

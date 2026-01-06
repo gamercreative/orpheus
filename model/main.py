@@ -34,30 +34,26 @@ for names in model.lstm._all_weights: # increase rest gate retention
         bias.data[n//4:n//2].fill_(1.0)
 
 # train
-criterianMSE = nn.MSELoss()
-criterianCE = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.003)
+criterianMSE = nn.MSELoss()  
+weight = torch.tensor([2.0,1.0,1.0],device=device)
+criterianCE = nn.CrossEntropyLoss(ignore_index=-1,weight=weight)
+optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-for epoch in range(300):
+for epoch in range(250):
     for X_batch, Y_batch in dataset.GetXY():
-        weights = torch.ones_like(Y_batch)
-        weights[:,-1,:] *= 1.4
-        weights[:,0,:] *= 1.28
 
         optimizer.zero_grad()
         out = model(X_batch)
         
-        motor_out = out[:,:,[0,1,3]]
-        pen_out = out[:,:,2]
-        
+        motor_out = out[:,:,[0,1,2]] # dx dy dt
         motor_true = Y_batch[:,:,[0,1,3]]
-        pen_true = Y_batch[:,:,2]
+        
+        pen_out = out[:,:,3:6] # pen_states 0 , 1 ,2
+        pen_true = Y_batch[:,:,2].long()
         
         loss_motor = criterianMSE(motor_out,motor_true)
-        loss_pen = criterianMSE(pen_out,pen_true)
+        loss_pen = criterianCE(pen_out.reshape(-1,3), pen_true.reshape(-1)) * 10.0
         loss = loss_motor + loss_pen
-        
-        # loss = torch.multiply(loss,weights).mean()
         
         loss.backward()
         optimizer.step()
@@ -68,7 +64,7 @@ for epoch in range(300):
 # inference
 
 def InferenceRun(letter_embed):
-    x_temp,y_temp,p_temp,t_temp = draw_model.DrawOut(model,letter_embed,100)
+    x_temp,y_temp,p_temp,t_temp = draw_model.DrawOut(model,letter_embed,500)
 
     print(letter_embed)
     print(x_temp.size(0))
@@ -80,7 +76,7 @@ def InferenceRun(letter_embed):
     p = []
     t = []
     for i in range(0,p_temp.size(dim=0)):
-        if p_temp[i] > 0.2:
+        if p_temp[i] > -0.5: # cehck this for errors in graph
             x.append(x_temp[i])
             y.append(y_temp[i])
             p.append(p_temp[i])
@@ -98,8 +94,9 @@ def InferenceRun(letter_embed):
     
     dpos = torch.abs(dx) + torch.abs(dy)
     
-    # plt.plot(time_axis, p, label="p")
-    # plt.plot(time_axis[1:], dpos, label="dx")
+    plt.plot(time_axis, p, label="p")
+    plt.plot(time_axis[1:], dpos, label="dx")
+    plt.show()
     plt.scatter(x,y, label="letter")
 
 while True:
@@ -107,6 +104,8 @@ while True:
         letter_embed = model.embed(letter.letter_id)
         print(letter.letter_id)
 
+        plt.title(letter.letter_path)
+        plt.legend()
         InferenceRun(letter_embed)
         plt.title(letter.letter_path)
         plt.legend()

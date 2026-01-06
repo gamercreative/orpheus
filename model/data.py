@@ -39,9 +39,12 @@ class LetterDataset:
         self.LoadLetterData()
         
     def LoadLetterData(self):
+        print(utils.ExtractCharFromFileName(self.letter_path))
         x,y = LoadData(self.letter_path)
         self.X = x.to(device)
         self.Y = y.to(device)
+        print(self.X.size(0))
+        print(self.Y.size(0))
         
     def PrepareStrokeEmbeddings(self,model):
         start_token = CreateStartToken(model)
@@ -69,7 +72,7 @@ def LoadData(path):
         tens = torch.tensor(seq, dtype=torch.float32)
         tensors.append(tens)
 
-    motor_seq = pad_sequence(tensors, batch_first=True , padding_value=0.0)
+    motor_seq = pad_sequence(tensors, batch_first=True , padding_value=utils.PAD_VALUE)
 
     X = motor_seq[:,:-1,:]
     Y = motor_seq

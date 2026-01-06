@@ -15,7 +15,7 @@ class DrawerLSTM(nn.Module):
         self.input_size = 4 + self.embedding_dim
         self.hidden_size = 128
         self.num_layers = 3
-        self.output_size = 4
+        self.output_size = 6 # dx , dy , dt , pen_0 , pen_1 , pen_2
         
         self.start_motor = nn.Parameter(torch.randn(4))
         self.end_motor   = nn.Parameter(torch.randn(4))
@@ -49,11 +49,20 @@ def DrawOut(model,embed,steps): # autoregressive inference
         out = model.norm(out)
         out = model.output_layer(out)
         
-        delta = out[:,-1:,:] + torch.rand_like(out[:,-1,:]) * 0.05
-        # delta = out[:,-1:,:]
+        # delta = out[:,-1:,:] + torch.rand_like(out[:,-1,:]) * 0.05
+        delta = out[:,-1:,:]
+        
+        motor_xy = out[0, -1, 0:2]           # dx, dy
+        motor_dt = out[0, -1, 2]              # dt
+        pen_logits = out[0, -1, 3:6]          # logts
+        pen_state = torch.argmax(pen_logits)  # integer 0,1,2
+        
+        delta = torch.stack([motor_xy[0], motor_xy[1], pen_state.float(), motor_dt]).view(1,1,4)
+        
         motor_seq.append(delta.squeeze(0))
         inp = delta
-        if delta[0,0,2] > 1.5:
+        
+        if pen_state == 2:
             break
 
     motor_seq = torch.stack(motor_seq)
