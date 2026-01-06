@@ -4,7 +4,6 @@ from torch.nn.utils.rnn import pad_sequence
 import utils
 
 device = utils.GetDevice()
-
 class Dataset:
     def __init__(self,dir):
         self.dir = dir
@@ -25,17 +24,12 @@ class Dataset:
             letter.PrepareStrokeEmbeddings(model)
             
     def GetXY(self):
-        x = []
-        y = []
+        xy = []
         for letter in self.letters:
-            x.append(letter.X)
-            y.append(letter.Y)
-            
-        x = torch.tensor(x).to(device)
-        y = torch.tensor(y).to(device)
-            
-        return x,y
-            
+            xy.append((letter.X.detach().to(device), letter.Y.detach().to(device)))
+
+        return xy
+    
 class LetterDataset:
     def __init__(self,path,letter_id):
         self.letter_id = letter_id
@@ -50,13 +44,15 @@ class LetterDataset:
         self.Y = y.to(device)
         
     def PrepareStrokeEmbeddings(self,model):
-        start_token = model.embed(utils.START_TOKEN_ID)
-        end_token = model.embed(utils.END_TOKEN_ID)
+        start_token = CreateStartToken(model)
+        end_token = CreateEndToken(model)
+        
         embed = model.embed(self.letter_id)
 
         self.X = AssignStrokeToLetter(self.X,embed)
         self.X = AssignStartToken(self.X, start_token)
-        self.Y = AssignEndToken(self.Y, end_token)
+        self.X = AssignEndTokenX(self.X, end_token)
+        self.Y = AssignEndTokenY(self.Y)
 
 def LoadData(path):
     #data
@@ -76,14 +72,33 @@ def LoadData(path):
     motor_seq = pad_sequence(tensors, batch_first=True , padding_value=0.0)
 
     X = motor_seq[:,:-1,:]
-    Y = motor_seq[:,1:,:]
+    Y = motor_seq
     
     return X,Y
 
+def CreateStartToken(model):
+    # creates the toekn as 1,1,68 batch,timstamp,feature
+    start_token_embed = model.embed(utils.START_TOKEN_ID).unsqueeze(0).unsqueeze(0)
+    start_token_motor = model.start_motor.unsqueeze(0).unsqueeze(0)
+    
+    start_token_embed = start_token_embed.detach()
+    start_token_motor = start_token_motor.detach()
+    
+    return torch.cat([start_token_motor,start_token_embed],dim=2).to(device)
+
+def CreateEndToken(model):
+    # creates the toekn as 1,1,68 batch,timstamp,feature
+    end_token_embed = model.embed(utils.END_TOKEN_ID).unsqueeze(0).unsqueeze(0)
+    end_token_motor = model.end_motor.unsqueeze(0).unsqueeze(0)
+    
+    end_token_embed = end_token_embed.detach()
+    end_token_motor = end_token_motor.detach()
+    
+    return torch.cat([end_token_motor, end_token_embed],dim=2).to(device)
+
 def AssignStrokeToLetter(X, embed):
     base_embed = embed.unsqueeze(0).unsqueeze(0)
-    print(base_embed.shape)
-    print(X.shape)
+
     if X.size(0) > base_embed.size(0):
         base_embed = base_embed.repeat(X.size(0),1,1) # batch timestamp features
     
@@ -91,34 +106,34 @@ def AssignStrokeToLetter(X, embed):
         base_embed = base_embed.repeat(1,X.size(1),1) # batch timestamp->X features
     
     X = torch.cat([X,base_embed],dim=2)
-    
-    print(X.shape)
         
     return X
 
-def AssignEndToken(Y,embed):
-    if Y == None:
-        end_token = torch.tensor(embed,device=device).unsqueeze(0).unsqueeze(0)
-        return end_token
-    
-    end_token = torch.tensor(embed,device=Y.device).unsqueeze(0).unsqueeze(0)
-    if Y.size(0) > end_token.size(0):
-        end_token = end_token.repeat(Y.size(0),1,1)
-        
-    Y = torch.cat([Y,end_token],dim=1)
-    
-    return Y
-
 def AssignStartToken(X,embed):
-    if X == None:
-        start_token = torch.tensor(embed,device=device).unsqueeze(0).unsqueeze(0)
-        return start_token
-    start_token = embed.unsqueeze(1).unsqueeze(0)
-    print(embed.shape)
-    
+    start_token = embed
     if X.size(0) > start_token.size(0):
         start_token = start_token.repeat(X.size(0),1,1)
-
+    
     X = torch.cat([start_token,X],dim=1)
     
     return X
+
+def AssignEndTokenX(X,embed):
+    end_token = embed
+    if X.size(0) > end_token.size(0):
+        end_token = end_token.repeat(X.size(0),1,1)
+
+    X = torch.cat([X,end_token],dim=1)
+    
+    return X
+
+def AssignEndTokenY(Y):
+    end_token_motor = [0,0,2,0]
+    end_token = torch.tensor(end_token_motor,device=device)
+    
+    if Y.size(0) > end_token.size(0):
+        end_token = end_token.repeat(Y.size(0),1,1)
+        
+    Y = torch.cat([Y,end_token], dim=1)
+    
+    return Y
