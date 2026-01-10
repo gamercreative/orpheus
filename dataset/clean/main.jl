@@ -10,4 +10,4 @@ for strokeSequence in jsonContent
     push!(strokeSequences, stroke)
 end
 
-SaveStrokes("dataset/data/e.json",strokeSequences)
+SaveStrokes("dataset/data/m.json",strokeSequences)
