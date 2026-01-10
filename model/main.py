@@ -45,7 +45,8 @@ optimizer = optim.Adam(model.parameters(), lr=3e-4)
 #     eta_min=5e-5
 # )
 
-for epoch in range(100):
+epochs = 50
+for epoch in range(epochs + 1):
     for X_batch, Y_batch in dataset.MixedXY():
 
         optimizer.zero_grad()
@@ -64,7 +65,7 @@ for epoch in range(100):
         loss.backward()
         optimizer.step()
 
-        if epoch % 19 == 0:
+        if epoch % epochs%5 == 0:
             print(f"Epoch {epoch} - Loss: {loss.item()}")
 
 # inference

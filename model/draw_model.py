@@ -13,7 +13,7 @@ class DrawerLSTM(nn.Module):
         self.embedding_size = 26 + 2 # 26 letters and 2 tokens
         self.embedding_dim = 64
         self.input_size = 4 + self.embedding_dim
-        self.hidden_size = 128
+        self.hidden_size = 64
         self.num_layers = 3
         self.output_size = 6 # dx , dy , dt , pen_0 , pen_1 , pen_2
         
