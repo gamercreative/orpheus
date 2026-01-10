@@ -13,8 +13,8 @@ class DrawerLSTM(nn.Module):
         self.embedding_size = 26 + 2 # 26 letters and 2 tokens
         self.embedding_dim = 64
         self.input_size = 4 + self.embedding_dim
-        self.hidden_size = 128
-        self.num_layers = 3
+        self.hidden_size = 160
+        self.num_layers = 4
         self.output_size = 6 # dx , dy , dt , pen_0 , pen_1 , pen_2
         
         self.start_motor = nn.Parameter(torch.randn(4))

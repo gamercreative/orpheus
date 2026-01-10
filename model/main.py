@@ -37,9 +37,15 @@ for names in model.lstm._all_weights: # increase rest gate retention
 criterianMSE = nn.MSELoss()  
 weight = torch.tensor([2.0,1.0,1.0],device=device)
 criterianCE = nn.CrossEntropyLoss(ignore_index=-1,weight=weight)
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
+optimizer = optim.Adam(model.parameters(), lr=3e-4)
 
-for epoch in range(150):
+# scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+#     optimizer,
+#     T_max=200,
+#     eta_min=5e-5
+# )
+
+for epoch in range(220):
     for X_batch, Y_batch in dataset.GetXY():
 
         optimizer.zero_grad()
@@ -52,7 +58,7 @@ for epoch in range(150):
         pen_true = Y_batch[:,:,2].long()
         
         loss_motor = criterianMSE(motor_out,motor_true)
-        loss_pen = criterianCE(pen_out.reshape(-1,3), pen_true.reshape(-1)) * 10.0
+        loss_pen = criterianCE(pen_out.reshape(-1,3), pen_true.reshape(-1)) * 3.0
         loss = loss_motor + loss_pen
         
         loss.backward()
