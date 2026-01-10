@@ -53,13 +53,15 @@ def capture_sequence():
                 pen_down = False
 
             if event.type == pygame.MOUSEMOTION:
-                x, y = event.pos
+                x, y_screen = event.pos
+                y = SCREEN_SIZE[1] - y_screen
                 t = time.time()
                 pen_state = 1 if pen_down else 0
                 sequence.append([x, y, pen_state, t])
 
                 if pen_state == 1:
-                    preview_points.append((x, y))
+                    preview_points.append((x, SCREEN_SIZE[1] - y))
+
 
         screen.fill((255, 255, 255))
         if len(preview_points) > 1:
