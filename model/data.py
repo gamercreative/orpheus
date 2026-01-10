@@ -30,6 +30,10 @@ class Dataset:
 
         return xy
     
+    def MixedXY(self):
+        for letter in self.letters:
+            
+    
 class LetterDataset:
     def __init__(self,path,letter_id):
         self.letter_id = letter_id
@@ -37,6 +41,7 @@ class LetterDataset:
         self.X = []
         self.Y = []
         self.LoadLetterData()
+        self.letter_count = self.X.size(0)
         
     def LoadLetterData(self):
         print(utils.ExtractCharFromFileName(self.letter_path))
