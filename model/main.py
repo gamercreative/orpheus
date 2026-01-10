@@ -39,7 +39,7 @@ weight = torch.tensor([2.0,1.0,1.0],device=device)
 criterianCE = nn.CrossEntropyLoss(ignore_index=-1,weight=weight)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-for epoch in range(250):
+for epoch in range(150):
     for X_batch, Y_batch in dataset.GetXY():
 
         optimizer.zero_grad()
