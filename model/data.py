@@ -2,6 +2,7 @@ import json
 import torch
 from torch.nn.utils.rnn import pad_sequence
 import utils
+import random
 
 device = utils.GetDevice()
 class Dataset:
@@ -30,8 +31,36 @@ class Dataset:
 
         return xy
     
-    def MixedXY(self):
+    def MixedXY(self, batch_size=8, shuffle=True):
+        samples = []
+
+        # collect individual stroke sequences from all letters
         for letter in self.letters:
+            for i in range(letter.X.size(0)):
+                samples.append((
+                    letter.X[i].detach(),
+                    letter.Y[i].detach()
+                ))
+
+        if shuffle:
+            random.shuffle(samples)
+
+        # create mixed mini-batches
+        for i in range(0, len(samples), batch_size):
+            batch = samples[i:i + batch_size]
+
+            Xs = [x for x, _ in batch]
+            Ys = [y for _, y in batch]
+
+            X_pad = pad_sequence(
+                Xs, batch_first=True, padding_value=utils.PAD_VALUE
+            )
+            Y_pad = pad_sequence(
+                Ys, batch_first=True, padding_value=utils.PAD_VALUE
+            )
+
+            yield X_pad.to(device), Y_pad.to(device)
+
             
     
 class LetterDataset:
@@ -41,15 +70,14 @@ class LetterDataset:
         self.X = []
         self.Y = []
         self.LoadLetterData()
+        self.letter_name = utils.ExtractCharFromFileName(self.letter_path)
         self.letter_count = self.X.size(0)
+        print(f"there are {self.letter_count} letters for {self.letter_name}")
         
     def LoadLetterData(self):
-        print(utils.ExtractCharFromFileName(self.letter_path))
         x,y = LoadData(self.letter_path)
         self.X = x.to(device)
         self.Y = y.to(device)
-        print(self.X.size(0))
-        print(self.Y.size(0))
         
     def PrepareStrokeEmbeddings(self,model):
         start_token = CreateStartToken(model)

@@ -45,8 +45,8 @@ optimizer = optim.Adam(model.parameters(), lr=3e-4)
 #     eta_min=5e-5
 # )
 
-for epoch in range(220):
-    for X_batch, Y_batch in dataset.GetXY():
+for epoch in range(100):
+    for X_batch, Y_batch in dataset.MixedXY():
 
         optimizer.zero_grad()
         out = model(X_batch)
