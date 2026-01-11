@@ -34,6 +34,14 @@ def GetDevice():
         
     return device
 
+def GetPenStateFromOut(pen_logits):
+    if pen_logits.dim() == 1:
+        return torch.argmax(pen_logits)
+    elif pen_logits.dim() == 2:
+        return torch.argmax(pen_logits, dim=-1)
+    else:
+        raise ValueError(f"Unexpected pen_logits shape: {pen_logits.shape}")
+
 device = GetDevice()
 
 START_TOKEN_ID = torch.tensor([26]).squeeze(0).to(device)

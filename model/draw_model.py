@@ -12,22 +12,28 @@ class DrawerLSTM(nn.Module):
     
         self.embedding_size = 26 + 2 # 26 letters and 2 tokens
         self.embedding_dim = 64
-        self.input_size = 4 + self.embedding_dim
-        self.hidden_size = 64
-        self.num_layers = 3
+        self.input_size = 4
+        self.hidden_size = 32
+        self.num_layers = 2
         self.output_size = 6 # dx , dy , dt , pen_0 , pen_1 , pen_2
         
         self.start_motor = nn.Parameter(torch.randn(4))
         self.end_motor   = nn.Parameter(torch.randn(4))
+        
+        self.letter_to_h = nn.Linear(self.embedding_dim, self.hidden_size)
+        self.letter_to_c = nn.Linear(self.embedding_dim, self.hidden_size)
 
         self.embed = nn.Embedding(self.embedding_size,self.embedding_dim)
         self.lstm = nn.LSTM(input_size=self.input_size, hidden_size=self.hidden_size, num_layers=self.num_layers, batch_first=True)
         self.norm = nn.LayerNorm(self.hidden_size)
         self.output_layer = nn.Linear(self.hidden_size,self.output_size)
 
-    def forward(self,x):
+    def forward(self,x,embed):
         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, device=x.device)
         c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size, device=x.device)
+        
+        h0[0] = self.letter_to_h(embed)
+        c0[0] = self.letter_to_c(embed)
 
         out,(hn,cn) = self.lstm(x,(h0,c0)) # no need to transfer the contetx
 
@@ -39,12 +45,14 @@ def DrawOut(model,embed,steps): # autoregressive inference
     model.eval()
     h0 = torch.zeros(model.num_layers,1,model.hidden_size, device=model.device)
     c0 = torch.zeros(model.num_layers,1,model.hidden_size, device=model.device)
+    
+    h0[0] = model.letter_to_h(embed)
+    c0[0] = model.letter_to_c(embed)
+    
     inp = data.CreateStartToken(model)
 
     motor_seq = []
     for step in range(steps):
-        if step > 0:
-            inp = data.AssignStrokeToLetter(inp,embed)
         out,(h0,c0) = model.lstm(inp,(h0,c0))
         out = model.norm(out)
         out = model.output_layer(out)
@@ -55,7 +63,7 @@ def DrawOut(model,embed,steps): # autoregressive inference
         motor_xy = out[0, -1, 0:2]           # dx, dy
         motor_dt = out[0, -1, 2]              # dt
         pen_logits = out[0, -1, 3:6]          # logts
-        pen_state = torch.argmax(pen_logits)  # integer 0,1,2
+        pen_state = utils.GetPenStateFromOut(pen_logits)  # integer 0,1,2
         
         delta = torch.stack([motor_xy[0], motor_xy[1], pen_state.float(), motor_dt]).view(1,1,4)
         
