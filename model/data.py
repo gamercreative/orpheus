@@ -39,7 +39,8 @@ class Dataset:
             for i in range(letter.X.size(0)):
                 samples.append((
                     letter.X[i].detach(),
-                    letter.Y[i].detach()
+                    letter.Y[i].detach(),
+                    letter.letter_id
                 ))
 
         if shuffle:
@@ -49,8 +50,9 @@ class Dataset:
         for i in range(0, len(samples), batch_size):
             batch = samples[i:i + batch_size]
 
-            Xs = [x for x, _ in batch]
-            Ys = [y for _, y in batch]
+            Xs = [x for x,_, _ in batch]
+            Ys = [y for _, y,_ in batch]
+            letter_ids = [lid for _, _, lid in batch]
 
             X_pad = pad_sequence(
                 Xs, batch_first=True, padding_value=utils.PAD_VALUE
@@ -58,10 +60,10 @@ class Dataset:
             Y_pad = pad_sequence(
                 Ys, batch_first=True, padding_value=utils.PAD_VALUE
             )
-
-            yield X_pad.to(device), Y_pad.to(device)
-
             
+            letter_ids = torch.tensor(letter_ids, dtype=torch.long)
+
+            yield X_pad.to(device), Y_pad.to(device), letter_ids.to(device)
     
 class LetterDataset:
     def __init__(self,path,letter_id):
@@ -85,7 +87,7 @@ class LetterDataset:
         
         embed = model.embed(self.letter_id)
 
-        self.X = AssignStrokeToLetter(self.X,embed)
+        # self.X = AssignStrokeToLetter(self.X,embed)
         self.X = AssignStartToken(self.X, start_token)
         self.X = AssignEndTokenX(self.X, end_token)
         self.Y = AssignEndTokenY(self.Y)
@@ -114,23 +116,25 @@ def LoadData(path):
 
 def CreateStartToken(model):
     # creates the toekn as 1,1,68 batch,timstamp,feature
-    start_token_embed = model.embed(utils.START_TOKEN_ID).unsqueeze(0).unsqueeze(0)
+    # start_token_embed = model.embed(utils.START_TOKEN_ID).unsqueeze(0).unsqueeze(0)
     start_token_motor = model.start_motor.unsqueeze(0).unsqueeze(0)
     
-    start_token_embed = start_token_embed.detach()
+    # start_token_embed = start_token_embed.detach()
     start_token_motor = start_token_motor.detach()
     
-    return torch.cat([start_token_motor,start_token_embed],dim=2).to(device)
+    # return torch.cat([start_token_motor,start_token_embed],dim=2).to(device)
+    return start_token_motor
 
 def CreateEndToken(model):
     # creates the toekn as 1,1,68 batch,timstamp,feature
-    end_token_embed = model.embed(utils.END_TOKEN_ID).unsqueeze(0).unsqueeze(0)
+    # end_token_embed = model.embed(utils.END_TOKEN_ID).unsqueeze(0).unsqueeze(0)
     end_token_motor = model.end_motor.unsqueeze(0).unsqueeze(0)
     
-    end_token_embed = end_token_embed.detach()
+    # end_token_embed = end_token_embed.detach()
     end_token_motor = end_token_motor.detach()
     
-    return torch.cat([end_token_motor, end_token_embed],dim=2).to(device)
+    # return torch.cat([end_token_motor, end_token_embed],dim=2).to(device)
+    return end_token_motor
 
 def AssignStrokeToLetter(X, embed):
     base_embed = embed.unsqueeze(0).unsqueeze(0)
