@@ -12,12 +12,8 @@ np.random.seed(42)
 random.seed(42)
 
 # device agonostic code setu
-if torch.mps.is_available():
-    device = "mps"
-elif torch.cuda.is_available():
-    device = "cuda"
-else:
-    device = "cpu"
+device = utils.GetDevice()
+print(f"using {device}")
 
 # load data
 dataset = data.Dataset("dataset/data")
@@ -40,43 +36,43 @@ weight = torch.tensor([2.0,1.0,1.0],device=device)
 criterianCE = nn.CrossEntropyLoss(ignore_index=-1,weight=weight)
 optimizer = optim.Adam(model.parameters(), lr=3e-4)
 
-epochs = 50
+epochs = 150
 for epoch in range(epochs + 1):
     for X_batch, Y_batch, letter_id in dataset.MixedXY():
-
         embed = model.embed(letter_id)
 
         optimizer.zero_grad()
         
-        h0 = torch.zeros(model.num_layers, X_batch.size(0), model.hidden_size, device=X_batch.device)
-        c0 = torch.zeros(model.num_layers, X_batch.size(0), model.hidden_size, device=X_batch.device)
-        h0[0] = model.letter_to_h(embed)
-        c0[0] = model.letter_to_c(embed)
+        h0 = torch.zeros( X_batch.size(0), model.hidden_size, device=X_batch.device)
+        c0 = torch.zeros( X_batch.size(0), model.hidden_size, device=X_batch.device)
+        h0 = model.letter_to_h(embed).detach()
+        c0 = model.letter_to_c(embed).detach()
         
         X_input_next = X_batch.clone()
         p_teacher = max(0.5, 1.0 - epoch / epochs)
         
+        # insert model predictions in with teacher forcing ( shecduled teacher forcing)
         for t in range(1,X_batch.size(1)):
-            out,(h0,c0) = model.lstm(X_batch[:,:t,:],(h0,c0))
-            out = model.norm(out)
+            h0,c0 = model.cell(X_batch[:,t,:].squeeze(1),(h0,c0))
+            h0 = model.norm(h0)
+            out = model.output_layer(h0)
             
-            motor_xy = out[0, -1, 0:2]           # dx, dy
-            motor_dt = out[0, -1, 2]              # dt
-            pen_logits = out[0, -1, 3:6]          # logts
+            motor_xy = out[:, 0:2]           # dx, dy
+            motor_dt = out[:, 2]              # dt
+            pen_logits = out[:, 3:6]          # logts
             pen_state = utils.GetPenStateFromOut(pen_logits)  # integer 0,1,2
-            
-            pred_next = torch.stack([motor_xy[0], motor_xy[1], pen_state.float(), motor_dt]).view(1,1,4)
-            
-            use_teacher = (torch.rand(X_batch.size(0), device=X_batch.device) < p_teacher).float().unsqueeze(-1)
 
-            # mix ground truth and predicted input
-            X_input_next[:, t, :] = use_teacher * X_batch[:, t, :] + (1 - use_teacher) * pred_next.squeeze(1)
-        
+            with torch.no_grad():
+                pred_next = torch.cat([motor_xy[:,0].unsqueeze(1),motor_xy[:,1].unsqueeze(1),pen_state.unsqueeze(1),motor_dt.unsqueeze(1)],dim=1)
+            
+            use_teacher = (torch.rand(X_batch.size(0), device=X_batch.device) < p_teacher).unsqueeze(-1)
+            X_input_next[:, t, :] = torch.where(use_teacher, X_batch[:, t, :], pred_next)
+
         out = model(X_input_next,embed)
         #prase the output
         motor_out = out[:,:,[0,1,2]] # dx dy dt
         motor_true = Y_batch[:,:,[0,1,3]]
-        
+
         pen_out = out[:,:,3:6] # pen_states 0 , 1 ,2
         pen_true = Y_batch[:,:,2].long()
         
@@ -87,7 +83,7 @@ for epoch in range(epochs + 1):
         loss.backward()
         optimizer.step()
 
-        if epoch % epochs//5 == 0:
+        if epoch % (epochs//5) == 0:
             print(f"Epoch {epoch} - Loss: {loss.item()}")
 
 # inference
@@ -130,7 +126,7 @@ def InferenceRun(letter_embed):
 
 while True:
     # for letter in dataset.letters:
-    letter = input("enter your letter")
+    letter = input("enter your letter: ")
     letter_id = utils.CharToId(letter)
     letter_embed = model.embed(letter_id)
     print(letter_id)

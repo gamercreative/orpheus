@@ -13,8 +13,8 @@ class DrawerLSTM(nn.Module):
         self.embedding_size = 26 + 2 # 26 letters and 2 tokens
         self.embedding_dim = 64
         self.input_size = 4
-        self.hidden_size = 32
-        self.num_layers = 2
+        self.hidden_size = 48
+        self.num_layers = 3
         self.output_size = 6 # dx , dy , dt , pen_0 , pen_1 , pen_2
         
         self.start_motor = nn.Parameter(torch.randn(4))
@@ -22,8 +22,9 @@ class DrawerLSTM(nn.Module):
         
         self.letter_to_h = nn.Linear(self.embedding_dim, self.hidden_size)
         self.letter_to_c = nn.Linear(self.embedding_dim, self.hidden_size)
-
+        
         self.embed = nn.Embedding(self.embedding_size,self.embedding_dim)
+        self.cell = nn.LSTMCell(self.input_size,self.hidden_size)
         self.lstm = nn.LSTM(input_size=self.input_size, hidden_size=self.hidden_size, num_layers=self.num_layers, batch_first=True)
         self.norm = nn.LayerNorm(self.hidden_size)
         self.output_layer = nn.Linear(self.hidden_size,self.output_size)
@@ -52,7 +53,7 @@ def DrawOut(model,embed,steps): # autoregressive inference
     inp = data.CreateStartToken(model)
 
     motor_seq = []
-    for step in range(steps):
+    for _ in range(steps):
         out,(h0,c0) = model.lstm(inp,(h0,c0))
         out = model.norm(out)
         out = model.output_layer(out)

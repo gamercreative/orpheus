@@ -45,6 +45,7 @@ class Dataset:
 
         if shuffle:
             random.shuffle(samples)
+            
 
         # create mixed mini-batches
         for i in range(0, len(samples), batch_size):
