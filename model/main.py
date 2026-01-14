@@ -36,7 +36,7 @@ weight = torch.tensor([2.0,1.0,1.0],device=device)
 criterianCE = nn.CrossEntropyLoss(ignore_index=-1,weight=weight)
 optimizer = optim.Adam(model.parameters(), lr=3e-4)
 
-epochs = 150
+epochs = 80
 for epoch in range(epochs + 1):
     for X_batch, Y_batch, letter_id in dataset.MixedXY():
         embed = model.embed(letter_id)
@@ -129,6 +129,8 @@ while True:
     letter = input("enter your letter: ")
     letter_id = utils.CharToId(letter)
     letter_embed = model.embed(letter_id)
+    weight = torch.rand_like(letter_embed) * 0.05
+    letter_embed = letter_embed + weight
     print(letter_id)
 
     plt.title(letter)
