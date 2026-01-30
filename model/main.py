@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
-from torch.nn.utils.rnn import pad_sequence
+# from torch.nn.utils.rnn import pad_sequence
 import torch.optim as optim
+import matplotlib # use this for ubuntu wayland sessions
+matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 import data, draw_model
 import torch, random, numpy as np
@@ -14,6 +16,7 @@ random.seed(42)
 # device agonostic code setu
 device = utils.GetDevice()
 print(f"using {device}")
+print("current cuda gpu device:", torch.cuda.current_device())
 
 # load data
 dataset = data.Dataset("dataset/data")
@@ -39,6 +42,7 @@ optimizer = optim.Adam(model.parameters(), lr=3e-4)
 epochs = 80
 for epoch in range(epochs + 1):
     for X_batch, Y_batch, letter_id in dataset.MixedXY():
+        
         embed = model.embed(letter_id)
 
         optimizer.zero_grad()
@@ -88,7 +92,7 @@ for epoch in range(epochs + 1):
 
 # inference
 
-def InferenceRun(letter_embed):
+def InferenceRun(letter_embed,index = 0):
     x_temp,y_temp,p_temp,t_temp = draw_model.DrawOut(model,letter_embed,500)
 
     print(letter_embed)
@@ -109,7 +113,7 @@ def InferenceRun(letter_embed):
             
     time_axis = torch.tensor(range(0,len(p)))
             
-    x = torch.tensor(x)
+    x = torch.tensor(x) + index*200
     y = torch.tensor(y)
     p = torch.tensor(p)
     t = torch.tensor(t)
@@ -119,23 +123,22 @@ def InferenceRun(letter_embed):
     
     dpos = torch.abs(dx) + torch.abs(dy)
     
-    plt.plot(time_axis, p, label="p")
-    plt.plot(time_axis[1:], dpos, label="dx")
-    plt.show()
     plt.scatter(x,y, label="letter")
 
 while True:
     # for letter in dataset.letters:
-    letter = input("enter your letter: ")
-    letter_id = utils.CharToId(letter)
-    letter_embed = model.embed(letter_id)
-    weight = torch.rand_like(letter_embed) * 0.05
-    letter_embed = letter_embed + weight
-    print(letter_id)
+    word = input("enter word: ")
+    index = 0
+    for letter in word:
+        letter_id = utils.CharToId(letter)
+        letter_embed = model.embed(letter_id)
+        weight = torch.rand_like(letter_embed) * 0.05
+        letter_embed = letter_embed + weight
+        print(letter_id)
 
-    plt.title(letter)
-    plt.legend()
-    InferenceRun(letter_embed)
-    plt.title(letter)
+        InferenceRun(letter_embed,index)
+        index+=1
+        
+    plt.title(word)
     plt.legend()
     plt.show()

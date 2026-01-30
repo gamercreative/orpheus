@@ -31,7 +31,7 @@ class Dataset:
 
         return xy
     
-    def MixedXY(self, batch_size=8, shuffle=True):
+    def MixedXY(self, batch_size=32, shuffle=True):
         samples = []
 
         # collect individual stroke sequences from all letters
