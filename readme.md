@@ -86,6 +86,11 @@ Although the project does not follow all the correct principles and best practic
 - the model learned the correct structure for each letter (when to raise pen, when to stop generation and output end token...)
 - the model showed resemblance between similar letters for example (p,q | g,j) which might or might not be present in the epoch present in the script
 - use its own embeddings for each letter to fully understand each one
-- trained on its own output to train on recovery and stray handling in addition to adding variety 
+- trained on its own output to train on recovery and stray handling in addition to adding variety
+
+### Personal goals achieved
+- Utilized julia for data and python for machine learning merging best of both worlds for me.
+- Learned the dynamics of a model after architecture ( i focused on learning the model itself and forget everything around it ).
+- Get a high level understanding of models in general during traning, inference, knowledge aquisition and way more which will help me write better model architectures in the future.
 
 ---
